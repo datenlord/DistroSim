@@ -3,6 +3,7 @@ name: QDMA-DEMO-TEST
 on:
   push:
     branches:
+      - 'master'
       - 'qdma-demo'
 
 jobs:
