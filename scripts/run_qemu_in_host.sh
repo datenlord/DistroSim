@@ -16,7 +16,7 @@ DEMO_PATH="/home/${USER}/cosim_demo"
 UBUNTU_IMG_PATH="${DEMO_PATH}/${IMG_NAME}"
 UBUNTU_KERNEL_PATH="${DEMO_PATH}/${KERNEL_NAME}"
 UBUNTU_INITRD_PATH="${DEMO_PATH}/${INITRD_NAME}"
-BIOS_PATH="${DEMO_PATH}/xilinx-qemu/pc-bios/bios-256k.bin"
+BIOS_PATH="${DEMO_PATH}/qemu/pc-bios/bios-256k.bin"
 CLOUD_CONFIG_IMG_PATH="${DEMO_PATH}/cloud_init.img"
 TEMP_FILE_PATH="/tmp/machine-x86-qdma-demo"
 TEST_LOG_FILE_PATH="${TEMP_FILE_PATH}/test.log"
@@ -60,7 +60,7 @@ docker run --rm -v $TEMP_FILE_PATH:$DOCKER_DRIVER_PATH dma-driver-builder
 # Build or export Xilinx QEMU
 if [ $XILINX_QEMU_BUILD_CACHE = 'true' ]; then
     echo "Using cached Xilinx QEMU build"
-    export PATH=$PATH:$DEMO_PATH/xilinx-qemu/qemu_build
+    export PATH=$PATH:$DEMO_PATH/qemu/qemu_build
 else
     echo "Building Xilinx QEMU"
     sudo apt update
@@ -68,7 +68,7 @@ else
     libcap-ng-dev libattr1-dev
 
     git clone https://github.com/Xilinx/qemu.git
-    cd xilinx-qemu
+    cd qemu
     mkdir qemu_build
     cd qemu_build
     ../configure  --target-list=x86_64-softmmu --enable-virtfs
