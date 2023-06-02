@@ -1,0 +1,42 @@
+name: QDMA-DEMO-TEST
+
+on:
+  push:
+    branches:
+      - 'qdma-demo'
+
+jobs:
+  QDMA-DEMO-TEST:
+    runs-on: ubuntu-latest
+    env:
+      DEMO_PATH: /home/runner/cosim_demo
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y cloud-image-utils libfdt1
+
+    - name: Use Cache of Xilinx QEMU
+      id: cache-qemu
+      uses: actions/cache@v3
+      env:
+        cache-name: xilinx-qemu
+      with:
+        path: ${{ env.DEMO_PATH }}/xilinx-qemu
+        key: xilinx-qemu-${{ hashFiles('**/xilinx-qemu/**') }}
+
+    - name: Build and Run QDMA Demo
+      run: |
+        ./scripts/run_qdma_model_in_host.sh
+
+    - name: Run QEMU
+      run: |
+        export XILINX_QEMU_BUILD_CACHE=${{ steps.cache-qemu.outputs.cache-hit }}
+        ./scripts/run_qemu_in_host.sh
+
+    - name: Debugging with ssh
+      if: ${{ failure() }}
+      uses: lhotari/action-upterm@v1
