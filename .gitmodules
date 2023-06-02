@@ -1,7 +1,6 @@
-[submodule "libsystemctlm-soc"]
-	path = libsystemctlm-soc
-	url = https://github.com/GTwhy/libsystemctlm-soc.git
-	branch = pos
 [submodule "pcie-model"]
 	path = pcie-model
 	url = https://github.com/Xilinx/pcie-model.git
+[submodule "libsystemctlm-soc"]
+	path = libsystemctlm-soc
+	url = https://github.com/Xilinx/libsystemctlm-soc.git
