@@ -21,6 +21,8 @@
  * THE SOFTWARE.	
  */
 
+#include "soc/pci/xilinx/xdma_signal.h"
+#include "sysc/communication/sc_clock.h"
 #include "sysc/utils/sc_report.h"
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
@@ -120,6 +122,11 @@ public:
 	SC_HAS_PROCESS(pcie_versal);
 
 	xilinx_xdma xdma;
+	// xdma_user_logic user_logic;
+	xdma_bypass_signal xdma_h2c_signal;
+	xdma_bypass_signal xdma_c2h_signal;
+	sc_clock clock_signal;
+
 	// BARs towards the XDMA
 	tlm_utils::simple_initiator_socket<pcie_versal> user_bar_init_socket;
 	tlm_utils::simple_initiator_socket<pcie_versal> cfg_init_socket;
@@ -132,7 +139,10 @@ public:
 		pci_device_base(name, NR_MMIO_BAR, NR_IRQ),
 
 		xdma("xdma"),
-
+		// user_logic("user-logic"),
+		xdma_h2c_signal("xdma-h2c-signal"),
+		xdma_c2h_signal("xdma-c2h-signal"),
+		clock_signal("clock-signal", sc_time(10, SC_NS)),
 		user_bar_init_socket("user_bar_init_socket"),
 		cfg_init_socket("cfg_init_socket"),
 		brdg_dma_tgt_socket("brdg-dma-tgt-socket")
@@ -144,10 +154,14 @@ public:
 		cfg_init_socket.bind(xdma.config_bar);
 		user_bar_init_socket.bind(xdma.user_bar);
 
-		// Setup DMA forwarding path (qdma.dma -> upstream to host)
+		// Setup DMA forwarding path (xdma.dma -> upstream to host)
 		xdma.dma.bind(brdg_dma_tgt_socket);
-		// xdma.ats_req.bind(ats_req);
-		// ats_inv.bind(xdma.ats_inv);
+		xdma_h2c_signal.connect(xdma.c2h_bridge);
+		xdma_c2h_signal.connect(xdma.h2c_bridge);
+		xdma.c2h_bridge.clk(clock_signal);
+		xdma.h2c_bridge.clk(clock_signal);
+		// xdma_signal.connect(user_logic);
+
 		brdg_dma_tgt_socket.register_b_transport(
 			this, &pcie_versal::fwd_dma_b_transport);
 
@@ -171,7 +185,7 @@ PhysFuncConfig getPhysFuncConfig()
 	PMCapability pmCap;
 	PCIExpressCapability pcieCap;
 	MSIXCapability msixCap;
-	uint32_t bar_flags = PCI_BASE_ADDRESS_MEM_TYPE_64;
+	uint32_t bar_flags = PCI_BASE_ADDRESS_MEM_TYPE_32;
 	// uint32_t msixTableSz = NR_IRQ;
 	uint32_t tableOffset = 0x100 | 4; // Table offset: 0, BIR: 4
 	uint32_t pba = 0x140000 | 4; // BIR: 4
@@ -186,8 +200,8 @@ PhysFuncConfig getPhysFuncConfig()
 	cfg.SetPCIClassBase(PCI_CLASS_BASE_NETWORK_CONTROLLER);
 
 	cfg.SetPCIBAR0(256 * KiB, bar_flags);
-	cfg.SetPCIBAR2(256 * KiB, bar_flags);
-	cfg.SetPCIBAR4(256 * KiB, bar_flags);
+	cfg.SetPCIBAR1(256 * KiB, bar_flags);
+	// cfg.SetPCIBAR2(256 * KiB, bar_flags);
 
 	cfg.SetPCISubsystemVendorID(PCI_VENDOR_ID_XILINX);
 	cfg.SetPCISubsystemID(PCI_SUBSYSTEM_ID_XILINX_TEST);
@@ -245,7 +259,6 @@ public:
 
 	PCIeController pcie_ctlr;
 	pcie_versal xdma;
-
 	//
 	// Reset signal.
 	//
@@ -304,11 +317,9 @@ int sc_main(int argc, char* argv[])
 	} else {
 		sync_quantum = strtoull(argv[2], NULL, 10);
 	}
-	sc_clock clk("clk", sc_time(20, SC_US));
 	sc_set_time_resolution(1, SC_PS);
 
 	top = new Top("top", argv[1], sc_time((double) sync_quantum, SC_NS));
-	top->xdma.xdma.c2h_bridge.clk(clk);
 	
 	if (argc < 3) {
 		sc_start(1, SC_PS);
