@@ -86,7 +86,7 @@ private:
 			case XDMA_USER_BAR_ID:
 				user_bar_init_socket->b_transport(trans, delay);
 				break;
-			case 0:
+			case XDMA_CONFIG_BAR_ID:
 				cfg_init_socket->b_transport(trans, delay);
 				break;
 			default:
@@ -122,9 +122,9 @@ public:
 	SC_HAS_PROCESS(pcie_versal);
 
 	xilinx_xdma xdma;
-	// xdma_user_logic user_logic;
-	xdma_bypass_signal xdma_h2c_signal;
-	xdma_bypass_signal xdma_c2h_signal;
+	xdma_user_logic user_logic;
+	// xdma_bypass_signal xdma_h2c_signal;
+	// xdma_bypass_signal xdma_c2h_signal;
 	sc_clock clock_signal;
 
 	// BARs towards the XDMA
@@ -139,10 +139,9 @@ public:
 		pci_device_base(name, NR_MMIO_BAR, NR_IRQ),
 
 		xdma("xdma"),
-		// user_logic("user-logic"),
-		xdma_h2c_signal("xdma-h2c-signal"),
-		xdma_c2h_signal("xdma-c2h-signal"),
-		clock_signal("clock-signal", sc_time(10, SC_NS)),
+		user_logic("user-logic"),
+		// xdma_h2c_signal("xdma-h2c-signal"),
+		// xdma_c2h_signal("xdma-c2h-signal"),
 		user_bar_init_socket("user_bar_init_socket"),
 		cfg_init_socket("cfg_init_socket"),
 		brdg_dma_tgt_socket("brdg-dma-tgt-socket")
@@ -152,14 +151,18 @@ public:
 		// XDMA connections
 		//
 		cfg_init_socket.bind(xdma.config_bar);
-		user_bar_init_socket.bind(xdma.user_bar);
+		user_bar_init_socket.bind(user_logic.user_bar);
 
 		// Setup DMA forwarding path (xdma.dma -> upstream to host)
 		xdma.dma.bind(brdg_dma_tgt_socket);
-		xdma_h2c_signal.connect(xdma.c2h_bridge);
-		xdma_c2h_signal.connect(xdma.h2c_bridge);
-		xdma.c2h_bridge.clk(clock_signal);
-		xdma.h2c_bridge.clk(clock_signal);
+
+		user_logic.h2c_desc.bind(xdma.dsc_bypass_h2c);
+		user_logic.c2h_desc.bind(xdma.dsc_bypass_c2h);
+		user_logic.c2h_data.bind(xdma.s_axis);
+		xdma.m_axis.bind(user_logic.h2c_data);
+		// xdma_h2c_signal.connect(xdma.c2h_bridge);
+		// xdma_c2h_signal.connect(xdma.h2c_bridge);
+		// xdma.h2c_bridge.clk(clock_signal);
 		// xdma_signal.connect(user_logic);
 
 		brdg_dma_tgt_socket.register_b_transport(
@@ -175,7 +178,7 @@ public:
 
 	void rst(sc_signal<bool>& rst)
 	{
-		xdma.reset();
+		// xdma.reset();
 	}
 };
 
@@ -193,7 +196,7 @@ PhysFuncConfig getPhysFuncConfig()
 	
 	cfg.SetPCIVendorID(PCI_VENDOR_ID_XILINX);
 	// XDMA
-	cfg.SetPCIDeviceID(0x9038);
+	cfg.SetPCIDeviceID(0x903f);
 
 	cfg.SetPCIClassProgIF(0);
 	cfg.SetPCIClassDevice(0);
@@ -328,14 +331,14 @@ int sc_main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	trace_fp = sc_create_vcd_trace_file("trace");
-	if (trace_fp) {
-		trace(trace_fp, *top, top->name());
-	}
+	// trace_fp = sc_create_vcd_trace_file("trace");
+	// if (trace_fp) {
+	// 	trace(trace_fp, *top, top->name());
+	// }
 
 	sc_start();
-	if (trace_fp) {
-		sc_close_vcd_trace_file(trace_fp);
-	}
+	// if (trace_fp) {
+	// 	sc_close_vcd_trace_file(trace_fp);
+	// }
 	return 0;
 }
