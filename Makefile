@@ -121,64 +121,67 @@ CPPFLAGS += -I $(LIBRP_PATH)
 
 VENV=SYSTEMC_INCLUDE=$(SYSTEMC_INCLUDE) SYSTEMC_LIBDIR=$(SYSTEMC_LIBDIR)
 VOBJ_DIR=obj_dir
-VFILES=apb_timer.v
+VFILES_DIR=bsv
+VFILES=mkBsvTop.v
 
-ifeq "$(HAVE_VERILOG_VERILATOR)" "y"
+# ifeq "$(HAVE_VERILOG_VERILATOR)" "y"
 VERILATOR_ROOT?=/usr/share/verilator
 VERILATOR=verilator
 
 VM_SC?=1
 VM_TRACE?=0
 VM_COVERAGE?=0
-V_LDLIBS += $(VOBJ_DIR)/Vapb_timer__ALL.a
-V_LDLIBS += $(VOBJ_DIR)/Vaxilite_dev__ALL.a
-V_LDLIBS += $(VOBJ_DIR)/Vaxifull_dev__ALL.a
+V_LDLIBS += $(VOBJ_DIR)/VmkBsvTop__ALL.a
 LDLIBS += $(V_LDLIBS)
-VERILATED_O=$(VOBJ_DIR)/verilated.o
+VERILATED_O=verilated.o
 
-# Gives some compatibility with vcs
-VFLAGS += --pins-bv 2 -Wno-fatal
-VFLAGS += --output-split-cfuncs 500
-
-VFLAGS+=--sc --Mdir $(VOBJ_DIR)
+VFLAGS += -Wno-fatal
+VFLAGS += --sc --Mdir $(VOBJ_DIR)
 VFLAGS += -CFLAGS "-DHAVE_VERILOG" -CFLAGS "-DHAVE_VERILOG_VERILATOR"
+VFLAGS += -y $(VFILES_DIR)
+VFLAGS += --pins-bv 31
+VFLAGS += --top-module mkBsvTop
+
 CPPFLAGS += -DHAVE_VERILOG
 CPPFLAGS += -DHAVE_VERILOG_VERILATOR
 CPPFLAGS += -I $(VOBJ_DIR)
+CPPFLAGS += -I $(VERILATOR_ROOT)/include
 
-ifeq "$(VM_TRACE)" "1"
-VFLAGS += --trace
-SC_OBJS += verilated_vcd_c.o
-SC_OBJS += verilated_vcd_sc.o
-CPPFLAGS += -DVM_TRACE=1
-endif
-endif
+# ifeq "$(VM_TRACE)" "1"
+# VFLAGS += --trace
+# SC_OBJS += verilated_vcd_c.o
+# SC_OBJS += verilated_vcd_sc.o
+# CPPFLAGS += -DVM_TRACE=1
+# endif
+# endif
 
-ifeq "$(HAVE_VERILOG_VCS)" "y"
-VCS=vcs
-SYSCAN=syscan
-VLOGAN=vlogan
-VHDLAN=vhdlan
+# ifeq "$(HAVE_VERILOG_VCS)" "y"
+# VCS=vcs
+# SYSCAN=syscan
+# VLOGAN=vlogan
+# VHDLAN=vhdlan
 
-CSRC_DIR = csrc
+# CSRC_DIR = csrc
 
-VLOGAN_FLAGS += -sysc
-VLOGAN_FLAGS += +v2k -sc_model apb_slave_timer
+# VLOGAN_FLAGS += -sysc
+# VLOGAN_FLAGS += +v2k -sc_model apb_slave_timer
 
-VHDLAN_FLAGS += -sysc
-VHDLAN_FLAGS += -sc_model apb_slave_dummy
+# VHDLAN_FLAGS += -sysc
+# VHDLAN_FLAGS += -sc_model apb_slave_dummy
 
-SYSCAN_ZYNQ_DEMO = zynq_demo.cc
-SYSCAN_ZYNQMP_DEMO = zynqmp_demo.cc
-SYSCAN_ZYNQMP_LMAC2_DEMO = zynqmp_lmac2_demo.cc
-SYSCAN_SCFILES += demo-dma.cc debugdev.cc remote-port-tlm.cc
-VCS_CFILES += remote-port-proto.c remote-port-sk.c safeio.c
+# SYSCAN_ZYNQ_DEMO = zynq_demo.cc
+# SYSCAN_ZYNQMP_DEMO = zynqmp_demo.cc
+# SYSCAN_ZYNQMP_LMAC2_DEMO = zynqmp_lmac2_demo.cc
+# SYSCAN_SCFILES += demo-dma.cc debugdev.cc remote-port-tlm.cc
+# VCS_CFILES += remote-port-proto.c remote-port-sk.c safeio.c
 
-SYSCAN_FLAGS += -tlm2 -sysc=opt_if
-SYSCAN_FLAGS += -cflags -DHAVE_VERILOG -cflags -DHAVE_VERILOG_VCS
-VCS_FLAGS += -sysc sc_main -sysc=adjust_timeres
-VFLAGS += -CFLAGS "-DHAVE_VERILOG" -CFLAGS "-DHAVE_VERILOG_VERILATOR"
-endif
+# SYSCAN_FLAGS += -tlm2 -sysc=opt_if
+# SYSCAN_FLAGS += -cflags -DHAVE_VERILOG -cflags -DHAVE_VERILOG_VCS
+# VCS_FLAGS += -sysc sc_main -sysc=adjust_timeres
+# VFLAGS += -CFLAGS "-DHAVE_VERILOG" -CFLAGS "-DHAVE_VERILOG_VERILATOR"
+# endif
+
+
 
 OBJS = $(C_OBJS) $(SC_OBJS)
 
@@ -191,11 +194,11 @@ TARGET_VERSAL_CPM5_QDMA_DEMO = pcie/versal/cpm5-qdma-demo
 TARGET_PCIE_XDMA_DEMO = pcie/versal/xdma-demo
 
 PCIE_MODEL_DIR=pcie-model/tlm-modules
-ifneq ($(wildcard $(PCIE_MODEL_DIR)/.),)
+# ifneq ($(wildcard $(PCIE_MODEL_DIR)/.),)
 # TARGETS += $(TARGET_VERSAL_CPM4_QDMA_DEMO)
 # TARGETS += $(TARGET_VERSAL_CPM5_QDMA_DEMO)
+# endif
 TARGETS += $(TARGET_PCIE_XDMA_DEMO)
-endif
 
 all: $(TARGETS)
 
@@ -208,27 +211,32 @@ CXXFLAGS += -MMD
 ## libpcie ##
 -include pcie-model/libpcie/libpcie.mk
 
-$(VERSAL_CPM5_QDMA_DEMO_O): $(VERSAL_CPM_QDMA_DEMO_C)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -o $@ $<
+$(VOBJ_DIR)/$(VERILATED_O) : $(VFILES_DIR)
+	$(VENV) $(VERILATOR) $(VFLAGS) $(VFILES)
+	$(MAKE) -C $(VOBJ_DIR) -f VmkBsvTop.mk
+	$(MAKE) -C $(VOBJ_DIR) -f VmkBsvTop.mk $(VERILATED_O)
+	
+# $(VERSAL_CPM5_QDMA_DEMO_O): $(VERSAL_CPM_QDMA_DEMO_C)
+# 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-$(TARGET_VERSAL_CPM5_QDMA_DEMO): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
-$(TARGET_VERSAL_CPM5_QDMA_DEMO): LDLIBS += libpcie.a
-$(TARGET_VERSAL_CPM5_QDMA_DEMO): $(VERSAL_CPM5_QDMA_DEMO_OBJS) libpcie.a
-	$(CXX) $(LDFLAGS) -o $@ $(VERSAL_CPM5_QDMA_DEMO_OBJS) $(LDLIBS)
+# $(TARGET_VERSAL_CPM5_QDMA_DEMO): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
+# $(TARGET_VERSAL_CPM5_QDMA_DEMO): LDLIBS += libpcie.a
+# $(TARGET_VERSAL_CPM5_QDMA_DEMO): $(VERSAL_CPM5_QDMA_DEMO_OBJS) libpcie.a
+# 	$(CXX) $(LDFLAGS) -o $@ $(VERSAL_CPM5_QDMA_DEMO_OBJS) $(LDLIBS)
 
 
-$(VERSAL_CPM4_QDMA_DEMO_O): $(VERSAL_CPM_QDMA_DEMO_C)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -DQDMA_CPM4_VERSION -c -o $@ $<
+# $(VERSAL_CPM4_QDMA_DEMO_O): $(VERSAL_CPM_QDMA_DEMO_C)
+# 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -DQDMA_CPM4_VERSION -c -o $@ $<
 
-$(TARGET_VERSAL_CPM4_QDMA_DEMO): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
-$(TARGET_VERSAL_CPM4_QDMA_DEMO): LDLIBS += libpcie.a
-$(TARGET_VERSAL_CPM4_QDMA_DEMO): $(VERSAL_CPM4_QDMA_DEMO_OBJS) libpcie.a
-	$(CXX) $(LDFLAGS) -o $@ $(VERSAL_CPM4_QDMA_DEMO_OBJS) $(LDLIBS)
+# $(TARGET_VERSAL_CPM4_QDMA_DEMO): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
+# $(TARGET_VERSAL_CPM4_QDMA_DEMO): LDLIBS += libpcie.a
+# $(TARGET_VERSAL_CPM4_QDMA_DEMO): $(VERSAL_CPM4_QDMA_DEMO_OBJS) libpcie.a
+# 	$(CXX) $(LDFLAGS) -o $@ $(VERSAL_CPM4_QDMA_DEMO_OBJS) $(LDLIBS)
 
 $(TARGET_PCIE_XDMA_DEMO): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
 $(TARGET_PCIE_XDMA_DEMO): LDLIBS += libpcie.a
-$(TARGET_PCIE_XDMA_DEMO): $(PCIE_XDMA_DEMO_OBJS) libpcie.a
-	$(CXX) $(LDFLAGS) -o $@ $(PCIE_XDMA_DEMO_OBJS) $(LDLIBS)
+$(TARGET_PCIE_XDMA_DEMO):  $(VOBJ_DIR)/$(VERILATED_O) $(PCIE_XDMA_DEMO_OBJS) libpcie.a 
+	$(CXX) $(LDFLAGS) -o $@ $(PCIE_XDMA_DEMO_OBJS) $(LDLIBS) $(VOBJ_DIR)/$(VERILATED_O)
 	
 verilated_%.o: $(VERILATOR_ROOT)/include/verilated_%.cpp
 
