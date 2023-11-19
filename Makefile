@@ -211,7 +211,7 @@ CXXFLAGS += -MMD
 ## libpcie ##
 -include pcie-model/libpcie/libpcie.mk
 
-$(VOBJ_DIR)/$(VERILATED_O) : $(VFILES_DIR)
+$(VERILATED_O) : $(VFILES_DIR)
 	$(VENV) $(VERILATOR) $(VFLAGS) $(VFILES)
 	$(MAKE) -C $(VOBJ_DIR) -f VmkBsvTop.mk
 	$(MAKE) -C $(VOBJ_DIR) -f VmkBsvTop.mk $(VERILATED_O)
@@ -235,7 +235,7 @@ $(VOBJ_DIR)/$(VERILATED_O) : $(VFILES_DIR)
 
 $(TARGET_PCIE_XDMA_DEMO): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
 $(TARGET_PCIE_XDMA_DEMO): LDLIBS += libpcie.a
-$(TARGET_PCIE_XDMA_DEMO):  $(VOBJ_DIR)/$(VERILATED_O) $(PCIE_XDMA_DEMO_OBJS) libpcie.a 
+$(TARGET_PCIE_XDMA_DEMO): $(VERILATED_O) $(PCIE_XDMA_DEMO_OBJS) libpcie.a
 	$(CXX) $(LDFLAGS) -o $@ $(PCIE_XDMA_DEMO_OBJS) $(LDLIBS) $(VOBJ_DIR)/$(VERILATED_O)
 	
 verilated_%.o: $(VERILATOR_ROOT)/include/verilated_%.cpp
@@ -248,3 +248,4 @@ clean:
 	$(RM) $(VERSAL_CPM4_QDMA_DEMO_OBJS:.o=.d)
 	$(RM) -r libpcie libpcie.a
 	$(RM) $(TARGET_PCIE_XDMA_DEMO) $(PCIE_XDMA_DEMO_OBJS)
+	$(RM) -r $(VOBJ_DIR)

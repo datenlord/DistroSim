@@ -6,7 +6,8 @@
 
 ### Build XDMA demo
 ```
-make -j 
+make verilated.o
+make pcie/versal/xdma-demo
 ```
 The Makefile will try to convert verilog to systemC firstly and compile it with xdma-demo and TLM libraries.
 
