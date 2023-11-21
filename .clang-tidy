@@ -99,13 +99,13 @@ Checks: >
 # Turn all the warnings from the checks above into errors.
 # WarningsAsErrors: "*"
 
-# HeaderFilterRegex: "(pcie/versal/|libsystemctlm-soc/soc/pci/xilinx/).*\\.h|cc$"
+HeaderFilterRegex: "libsystemctlm-soc/soc/pci/xilinx/xdma.h|libsystemctlm-soc/soc/pci/xilinx/xdma_signal.h"
 
 CheckOptions:
   - { key: readability-identifier-naming.NamespaceCase,          value: lower_case }
   - { key: readability-identifier-naming.ClassCase,              value: lower_case  }
   - { key: readability-identifier-naming.StructCase,             value: lower_case  }
-  - { key: readability-identifier-naming.TemplateParameterCase,  value: CamelCase  }
+  - { key: readability-identifier-naming.TemplateParameterCase,  value: UPPER_CASE  }
   - { key: readability-identifier-naming.FunctionCase,           value: aNy_CasE  }
   - { key: readability-identifier-naming.VariableCase,           value: lower_case }
   - { key: readability-identifier-naming.ClassMemberCase,        value: lower_case }
@@ -113,7 +113,6 @@ CheckOptions:
   - { key: readability-identifier-naming.PrivateMemberSuffix,    value: _          }
   - { key: readability-identifier-naming.ProtectedMemberSuffix,  value: _          }
   - { key: readability-identifier-naming.EnumConstantCase,         value: UPPER_CASE }
-  - { key: readability-identifier-naming.EnumConstantPrefix,       value:          }
   - { key: readability-identifier-naming.ConstexprVariableCase,    value: UPPER_CASE }
   - { key: readability-identifier-naming.ConstexprVariablePrefix,  value: k         }
   - { key: readability-identifier-naming.GlobalConstantCase,       value: UPPER_CASE }

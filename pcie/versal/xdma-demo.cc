@@ -31,9 +31,6 @@
 #include "tlm_core/tlm_2/tlm_generic_payload/tlm_gp.h"
 #define SC_INCLUDE_DYNAMIC_PROCESSES
 
-#include <signal.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <unistd.h>
 
 #include "systemc.h"
@@ -46,9 +43,6 @@
 #include "soc/pci/xilinx/xdma.h"
 #include "tlm-modules/pcie-controller.h"
 
-using namespace sc_core;
-using namespace sc_dt;
-using namespace std;
 
 #include "debugdev.h"
 #include "iconnect.h"
@@ -85,7 +79,7 @@ using namespace std;
 class pcie_versal : public pci_device_base {
  private:
   void bar_b_transport(int bar_nr, tlm::tlm_generic_payload& trans,
-                       sc_time& delay) {
+                       sc_time& delay) override {
     switch (bar_nr) {
       case XDMA_USER_BAR_ID:
         user_bar_init_socket->b_transport(trans, delay);
@@ -104,7 +98,6 @@ class pcie_versal : public pci_device_base {
   // Forward DMA requests received from the CPM5 QDMA
   //
   void fwd_dma_b_transport(tlm::tlm_generic_payload& trans, sc_time& delay) {
-    // TODO: remove the following line
     // trans.set_response_status(tlm::TLM_OK_RESPONSE);
     dma->b_transport(trans, delay);
   }
@@ -125,9 +118,8 @@ class pcie_versal : public pci_device_base {
   // QDMA towards PCIe interface (host)
   tlm_utils::simple_target_socket<pcie_versal> brdg_dma_tgt_socket;
 
-  pcie_versal(sc_core::sc_module_name name)
+  explicit pcie_versal(const sc_core::sc_module_name& name)
       :
-
         pci_device_base(name, NR_MMIO_BAR, NR_IRQ),
         xdma("xdma", XDMA_CHANNEL_NUM),
         xdma_signals("xdma_signals"),
@@ -186,14 +178,14 @@ class pcie_versal : public pci_device_base {
 
 PhysFuncConfig getPhysFuncConfig() {
   PhysFuncConfig cfg;
-  PMCapability pmCap;
-  PCIExpressCapability pcieCap;
-  MSIXCapability msixCap;
+  PMCapability pm_cap;
+  PCIExpressCapability pcie_cap;
+  MSIXCapability msix_cap;
   uint32_t bar_flags = PCI_BASE_ADDRESS_MEM_TYPE_32;
   // uint32_t msixTableSz = NR_IRQ;
-  uint32_t tableOffset = 0x100 | 4;  // Table offset: 0, BIR: 4
+  uint32_t table_offset = 0x100 | 4;  // Table offset: 0, BIR: 4
   uint32_t pba = 0x140000 | 4;       // BIR: 4
-  uint32_t maxLinkWidth;
+  uint32_t max_link_width;
 
   cfg.SetPCIVendorID(PCI_VENDOR_ID_XILINX);
   // XDMA
@@ -211,19 +203,19 @@ PhysFuncConfig getPhysFuncConfig() {
   cfg.SetPCISubsystemID(PCI_SUBSYSTEM_ID_XILINX_TEST);
   cfg.SetPCIExpansionROMBAR(0, 0);
 
-  cfg.AddPCICapability(pmCap);
+  cfg.AddPCICapability(pm_cap);
 
-  maxLinkWidth = 1 << 4;
-  pcieCap.SetDeviceCapabilities(PCI_EXP_DEVCAP_RBER);
-  pcieCap.SetLinkCapabilities(PCI_EXP_LNKCAP_SLS_2_5GB | maxLinkWidth |
+  max_link_width = 1 << 4;
+  pcie_cap.SetDeviceCapabilities(PCI_EXP_DEVCAP_RBER);
+  pcie_cap.SetLinkCapabilities(PCI_EXP_LNKCAP_SLS_2_5GB | max_link_width |
                               PCI_EXP_LNKCAP_ASPM_L0S);
-  pcieCap.SetLinkStatus(PCI_EXP_LNKSTA_CLS_2_5GB | PCI_EXP_LNKSTA_NLW_X1);
-  cfg.AddPCICapability(pcieCap);
+  pcie_cap.SetLinkStatus(PCI_EXP_LNKSTA_CLS_2_5GB | PCI_EXP_LNKSTA_NLW_X1);
+  cfg.AddPCICapability(pcie_cap);
 
-  msixCap.SetMessageControl(0);
-  msixCap.SetTableOffsetBIR(tableOffset);
-  msixCap.SetPendingBitArray(pba);
-  cfg.AddPCICapability(msixCap);
+  msix_cap.SetMessageControl(0);
+  msix_cap.SetTableOffsetBIR(table_offset);
+  msix_cap.SetPendingBitArray(pba);
+  cfg.AddPCICapability(msix_cap);
 
   return cfg;
 }
@@ -236,19 +228,19 @@ PhysFuncConfig getPhysFuncConfig() {
 //
 SC_MODULE(pcie_host) {
  private:
-  remoteport_tlm_pci_ep rp_pci_ep;
+  remoteport_tlm_pci_ep rp_pci_ep_;
 
  public:
   pcie_root_port rootport;
   sc_in<bool> rst;
 
-  pcie_host(sc_module_name name, const char* sk_descr)
+  pcie_host(const sc_module_name& name, const char* sk_descr)
       : sc_module(name),
-        rp_pci_ep("rp-pci-ep", 0, 1, 0, sk_descr),
+        rp_pci_ep_("rp-pci-ep", 0, 1, 0, sk_descr),
         rootport("rootport"),
         rst("rst") {
-    rp_pci_ep.rst(rst);
-    rp_pci_ep.bind(rootport);
+    rp_pci_ep_.rst(rst);
+    rp_pci_ep_.bind(rootport);
   }
 };
 
@@ -266,13 +258,13 @@ SC_MODULE(Top) {
   sc_signal<bool> rst;
   sc_signal<bool> rst_n;
 
-  Top(sc_module_name name, const char* sk_descr, sc_time quantum)
+  Top(const sc_module_name& name, const char* sk_descr, const sc_time& quantum)
       : sc_module(name),
         host("host", sk_descr),
         pcie_ctlr("pcie-ctlr", getPhysFuncConfig()),
         xdma("pcie-xdma"),
         rst("rst") {
-    m_qk.set_global_quantum(quantum);
+    tlm_utils::tlm_quantumkeeper::set_global_quantum(quantum);
 
     // Setup TLP sockets (host.rootport <-> pcie-ctlr)
     host.rootport.init_socket.bind(pcie_ctlr.tgt_socket);
@@ -290,10 +282,10 @@ SC_MODULE(Top) {
     sensitive << rst;
     SC_THREAD(pull_reset);
   }
-  void invert_reset(void) {
+  void invert_reset() {
     rst_n.write(!rst.read());
   }
-  void pull_reset(void) {
+  void pull_reset() {
     /* Pull the reset signal.  */
     rst.write(true);
     wait(1, SC_US);
@@ -301,10 +293,10 @@ SC_MODULE(Top) {
   }
 
  private:
-  tlm_utils::tlm_quantumkeeper m_qk;
+  tlm_utils::tlm_quantumkeeper m_qk_;
 };
 
-void usage(void) {
+void usage() {
   cout << "tlm socket-path sync-quantum-ns" << endl;
 }
 
@@ -318,11 +310,11 @@ int sc_main(int argc, char* argv[]) {
   if (argc < 3) {
     sync_quantum = 10000;
   } else {
-    sync_quantum = strtoull(argv[2], NULL, 10);
+    sync_quantum = strtoull(argv[2], nullptr, 10);
   }
   sc_set_time_resolution(1, SC_PS);
 
-  top = new Top("top", argv[1], sc_time((double)sync_quantum, SC_NS));
+  top = new Top("top", argv[1], sc_time(static_cast<double>(sync_quantum), SC_NS));
 
   if (argc < 3) {
     sc_start(1, SC_PS);
