@@ -10,99 +10,106 @@ DMA_DATA_WIDTH = 256
 DMA_ADDR_WIDTH = 64
 BRIDGE_ADDR_WIDTH = 32
 BRIDGE_DATA_WIDTH = 32
+DMA_DATA_WIDTH_IN_BYTES = DMA_DATA_WIDTH // 8
 
 bypass_field = [
     ("bool", "load"),
-    (f"sc_bv<{DMA_ADDR_WIDTH}>", "src_addr"),
+    (f"sc_bv<DMA_ADDR_WIDTH>", "src_addr"),
     ("uint32_t", "len"),
-    (f"sc_bv<{DMA_ADDR_WIDTH}>", "dst_addr"),
+    (f"sc_bv<DMA_ADDR_WIDTH>", "dst_addr"),
     ("uint32_t", "ctl"),
     ("bool", "ready"),
     ("bool", "desc_done"),  # unsed
 ]
 axis_field = [
     {"name": "tstrb", "generic_type": "signal",
-        "type": f"sc_bv<{DMA_DATA_WIDTH//8}>"},
+        "type": f"sc_bv<DMA_DATA_WIDTH_IN_BYTES>"},
     {"name": "tlast", "generic_type": "signal", "type": "bool"},
     {"name": "tuser", "generic_type": "signal", "type": "bool"},
     {"name": "tkeep", "generic_type": "signal",
-        "type": f"sc_bv<{DMA_DATA_WIDTH//8}>"},
+        "type": f"sc_bv<DMA_DATA_WIDTH_IN_BYTES>"},
     {"name": "tready", "generic_type": "signal", "type": "bool"},
     {"name": "tvalid", "generic_type": "signal", "type": "bool"},
     {"name": "tdata", "generic_type": "signal",
-        "type": f"sc_bv<{DMA_DATA_WIDTH}>"},
+        "type": f"sc_bv<DMA_DATA_WIDTH>"},
 ]
 
 axi_field = [
     {"name": "awvalid", "generic_type": "signal", "type": "bool"},
     {"name": "awready", "generic_type": "signal", "type": "bool"},
     {"name": "awaddr", "generic_type": "signal",
-        "type": f"sc_bv<{DMA_ADDR_WIDTH}>"},
+        "type": f"sc_bv<DMA_ADDR_WIDTH>"},
     {"name": "awprot",
      "generic_type": "adpater",
-        "from_ty": "sc_bv<4>",
+        "from_ty": "sc_bv<AXI_AWPROT_WIDTH>",
         "to_ty": "uint32_t",
-        "h2c_func": "bvn_to_uint32t<4>",
-        "c2h_func": "uint32t_to_bvn<4>",
+        "h2c_func": "bvn_to_uint32t<AXI_AWPROT_WIDTH>",
+        "c2h_func": "uint32t_to_bvn<AXI_AWPROT_WIDTH>",
         "h2c_signal_direction": "out"},
-    {"name": "awuser", "generic_type": "signal", "type": "sc_bv<2>"},
-    {"name": "awregion", "generic_type": "signal", "type": "sc_bv<4>"},
-    {"name": "awqos", "generic_type": "signal", "type": "sc_bv<4>"},
-    {"name": "awcache", "generic_type": "signal", "type": "sc_bv<4>"},
-    {"name": "awburst", "generic_type": "signal", "type": "sc_bv<2>"},
-    {"name": "awsize", "generic_type": "signal", "type": "sc_bv<3>"},
-    {"name": "awlen", "generic_type": "signal", "type": "sc_bv<8>"},
-    {"name": "awid", "generic_type": "signal", "type": "sc_bv<8>"},
-    {"name": "awlock", "generic_type": "signal", "type": "sc_bv<1>"},
-    {"name": "wid", "generic_type": "signal", "type": "sc_bv<8>"},
+    {"name": "awuser", "generic_type": "signal", "type": "sc_bv<AXI_USER_WIDTH>"},
+    {"name": "awregion", "generic_type": "signal",
+        "type": "sc_bv<AXI_REGION_WIDTH>"},
+    {"name": "awqos", "generic_type": "signal", "type": "sc_bv<AXI_QOS_WIDTH>"},
+    {"name": "awcache", "generic_type": "signal", "type": "sc_bv<AXI_CACHE_WIDTH>"},
+    {"name": "awburst", "generic_type": "signal", "type": "sc_bv<AXI_BURST_WIDTH>"},
+    {"name": "awsize", "generic_type": "signal", "type": "sc_bv<AXI_SIZE_WIDTH>"},
+    {"name": "awlen", "generic_type": "signal", "type": "sc_bv<AXI_LEN_WIDTH>"},
+    {"name": "awid", "generic_type": "signal", "type": "sc_bv<AXI_ID_WIDTH>"},
+    {"name": "awlock", "generic_type": "signal", "type": "sc_bv<AXI_LOCK_WIDTH>"},
+    {"name": "wid", "generic_type": "signal", "type": "sc_bv<AXI_ID_WIDTH>"},
     {"name": "wvalid", "generic_type": "signal", "type": "bool"},
     {"name": "wready", "generic_type": "signal", "type": "bool"},
     {"name": "wdata", "generic_type": "signal",
-        "type": f"sc_bv<{DMA_DATA_WIDTH}>"},
+        "type": f"sc_bv<DMA_DATA_WIDTH>"},
     {"name": "wstrb", "generic_type": "signal",
-        "type": f"sc_bv<{DMA_DATA_WIDTH//8}>"},
-    {"name": "wuser", "generic_type": "signal", "type": "sc_bv<2>"},
+        "type": f"sc_bv<DMA_DATA_WIDTH_IN_BYTES>"},
+    {"name": "wuser", "generic_type": "signal", "type": "sc_bv<AXI_USER_WIDTH>"},
     {"name": "wlast", "generic_type": "signal", "type": "bool"},
     {"name": "bvalid", "generic_type": "signal", "type": "bool"},
     {"name": "bready", "generic_type": "signal", "type": "bool"},
-    {"name": "bresp", "generic_type": "signal", "type": "sc_bv<2>"},
-    {"name": "buser", "generic_type": "signal", "type": "sc_bv<2>"},
-    {"name": "bid", "generic_type": "signal", "type": "sc_bv<8>"},
+    {"name": "bresp", "generic_type": "signal", "type": "sc_bv<AXI_RESP_WIDTH>"},
+    {"name": "buser", "generic_type": "signal", "type": "sc_bv<AXI_USER_WIDTH>"},
+    {"name": "bid", "generic_type": "signal", "type": "sc_bv<AXI_ID_WIDTH>"},
     {"name": "arvalid", "generic_type": "signal", "type": "bool"},
     {"name": "arready", "generic_type": "signal", "type": "bool"},
     {"name": "araddr", "generic_type": "signal",
-        "type": f"sc_bv<{DMA_ADDR_WIDTH}>"},
+        "type": f"sc_bv<DMA_ADDR_WIDTH>"},
     {"name": "arprot",
      "generic_type": "adpater",
-        "from_ty": "sc_bv<3>",
+        "from_ty": "sc_bv<AXI_ARPROT_WIDTH>",
         "to_ty": "uint32_t",
-        "h2c_func": "bvn_to_uint32t<3>",
-        "c2h_func": "uint32t_to_bvn<3>",
+        "h2c_func": "bvn_to_uint32t<AXI_ARPROT_WIDTH>",
+        "c2h_func": "uint32t_to_bvn<AXI_ARPROT_WIDTH>",
         "h2c_signal_direction": "out"},
-    {"name": "aruser", "generic_type": "signal", "type": "sc_bv<2>"},
-    {"name": "arregion", "generic_type": "signal", "type": "sc_bv<4>"},
-    {"name": "arqos", "generic_type": "signal", "type": "sc_bv<4>"},
-    {"name": "arcache", "generic_type": "signal", "type": "sc_bv<4>"},
-    {"name": "arburst", "generic_type": "signal", "type": "sc_bv<2>"},
-    {"name": "arsize", "generic_type": "signal", "type": "sc_bv<3>"},
-    {"name": "arlen", "generic_type": "signal", "type": "sc_bv<8>"},
-    {"name": "arid", "generic_type": "signal", "type": "sc_bv<8>"},
-    {"name": "arlock", "generic_type": "signal", "type": "sc_bv<1>"},
+    {"name": "aruser", "generic_type": "signal", "type": "sc_bv<AXI_USER_WIDTH>"},
+    {"name": "arregion", "generic_type": "signal",
+        "type": "sc_bv<AXI_REGION_WIDTH>"},
+    {"name": "arqos", "generic_type": "signal", "type": "sc_bv<AXI_QOS_WIDTH>"},
+    {"name": "arcache", "generic_type": "signal", "type": "sc_bv<AXI_CACHE_WIDTH>"},
+    {"name": "arburst", "generic_type": "signal", "type": "sc_bv<AXI_BURST_WIDTH>"},
+    {"name": "arsize", "generic_type": "signal", "type": "sc_bv<AXI_SIZE_WIDTH>"},
+    {"name": "arlen", "generic_type": "signal", "type": "sc_bv<AXI_LEN_WIDTH>"},
+    {"name": "arid", "generic_type": "signal", "type": "sc_bv<AXI_ID_WIDTH>"},
+    {"name": "arlock", "generic_type": "signal", "type": "sc_bv<AXI_LOCK_WIDTH>"},
     {"name": "rvalid", "generic_type": "signal", "type": "bool"},
     {"name": "rready", "generic_type": "signal", "type": "bool"},
     {"name": "rdata", "generic_type": "signal",
-        "type": f"sc_bv<{DMA_DATA_WIDTH}>"},
-    {"name": "rresp", "generic_type": "signal", "type": "sc_bv<2>"},
-    {"name": "ruser", "generic_type": "signal", "type": "sc_bv<2>"},
-    {"name": "rid", "generic_type": "signal", "type": "sc_bv<8>"},
+        "type": f"sc_bv<DMA_DATA_WIDTH>"},
+    {"name": "rresp", "generic_type": "signal", "type": "sc_bv<AXI_RESP_WIDTH>"},
+    {"name": "ruser", "generic_type": "signal", "type": "sc_bv<AXI_USER_WIDTH>"},
+    {"name": "rid", "generic_type": "signal", "type": "sc_bv<AXI_ID_WIDTH>"},
     {"name": "rlast", "generic_type": "signal", "type": "bool"},
-    {"name": "awsnoop", "generic_type": "signal", "type": "sc_bv<3>"},
-    {"name": "awdomain", "generic_type": "signal", "type": "sc_bv<2>"},
-    {"name": "awbar", "generic_type": "signal", "type": "sc_bv<2>"},
+    {"name": "awsnoop", "generic_type": "signal",
+        "type": "sc_bv<AXI_AWSNOOP_WIDTH>"},
+    {"name": "awdomain", "generic_type": "signal",
+        "type": "sc_bv<AXI_DOMAIN_WIDTH>"},
+    {"name": "awbar", "generic_type": "signal", "type": "sc_bv<AXI_BAR_WIDTH>"},
     {"name": "wack", "generic_type": "signal", "type": "bool"},
-    {"name": "arsnoop", "generic_type": "signal", "type": "sc_bv<4>"},
-    {"name": "ardomain", "generic_type": "signal", "type": "sc_bv<2>"},
-    {"name": "arbar", "generic_type": "signal", "type": "sc_bv<2>"},
+    {"name": "arsnoop", "generic_type": "signal",
+        "type": "sc_bv<AXI_ARSNOOP_WIDTH>"},
+    {"name": "ardomain", "generic_type": "signal",
+        "type": "sc_bv<AXI_DOMAIN_WIDTH>"},
+    {"name": "arbar", "generic_type": "signal", "type": "sc_bv<AXI_BAR_WIDTH>"},
     {"name": "rack", "generic_type": "signal", "type": "bool"},
 ]
 
@@ -249,20 +256,29 @@ for signal in signals:
 new_content += "{}\n"
 
 # replace old content
-pattern = r'class xdma_bypass_signal : public sc_core::sc_module \{(.*?)\};'
+pattern = r'class xdma_bypass_signal : public sc_core::sc_module \s*\{(.*?)\};'
 result = re.sub(
     pattern, f'class xdma_bypass_signal : public sc_core::sc_module {{{new_content}}};', source_string, flags=re.DOTALL)
 
-# replace bridge width
-pattern = r'sc_signal<sc_bv<(.*?)>>\s*axilRegBlock_wdata'
+# update #defination
+pattern = r'#define DMA_DATA_WIDTH (\d+)'
+result = re.sub(pattern, f'#define DMA_DATA_WIDTH {DMA_DATA_WIDTH}', result)
+pattern = r'#define DMA_ADDR_WIDTH (\d+)'
+result = re.sub(pattern, f'#define DMA_ADDR_WIDTH {DMA_ADDR_WIDTH}', result)
+pattern = r'#define BRIDGE_DATA_WIDTH (\d+)'
 result = re.sub(
-    pattern, f'sc_signal<sc_bv<{BRIDGE_DATA_WIDTH}>> axilRegBlock_wdata', source_string)
-pattern = r'sc_signal<sc_bv<(.*?)>>\s*axilRegBlock_rdata'
+    pattern, f'#define BRIDGE_DATA_WIDTH {BRIDGE_DATA_WIDTH}', result)
+pattern = r'#define BRIDGE_ADDR_WIDTH (\d+)'
 result = re.sub(
-    pattern, f'sc_signal<sc_bv<{BRIDGE_DATA_WIDTH}>> axilRegBlock_rdata', source_string)
+    pattern, f'#define BRIDGE_ADDR_WIDTH {BRIDGE_ADDR_WIDTH}', result)
+pattern = r'#define DMA_DATA_WIDTH_IN_BYTES (\d+)'
+result = re.sub(
+    pattern, f'#define DMA_DATA_WIDTH_IN_BYTES {DMA_DATA_WIDTH_IN_BYTES}', result)
+
 with open(REL_PATH_TO_XDMA_SIGNAL_H, "w") as file:
     file.write(result)
 
+# Now, we need to update xdma-demo.cc
 # Update xdma-demo.cc
 with open(REL_PATH_TO_XDMA_DEMO, "r") as file:
     source_string = file.read()
@@ -272,16 +288,16 @@ result = re.sub(
 if CHANNEL_TYPE == "mm":
     pattern = r'#define XDMA_BYPASS_C2H_BRIDGE\s+(.*)'
     result = re.sub(
-        pattern, f'#define XDMA_BYPASS_C2H_BRIDGE axi2tlm_bridge<{DMA_DATA_WIDTH},{DMA_ADDR_WIDTH}>', result)
+        pattern, f'#define XDMA_BYPASS_C2H_BRIDGE axi2tlm_bridge<DMA_DATA_WIDTH,DMA_ADDR_WIDTH>', result)
     pattern = r'#define XDMA_BYPASS_H2C_BRIDGE\s+(.*)'
     result = re.sub(
-        pattern, f'#define XDMA_BYPASS_H2C_BRIDGE tlm2axi_bridge<{DMA_DATA_WIDTH},{DMA_ADDR_WIDTH}>', result)
+        pattern, f'#define XDMA_BYPASS_H2C_BRIDGE tlm2axi_bridge<DMA_DATA_WIDTH,DMA_ADDR_WIDTH>', result)
 elif CHANNEL_TYPE == "stream":
     pattern = r'#define XDMA_BYPASS_C2H_BRIDGE\s+(.*)'
     result = re.sub(
-        pattern, f'#define XDMA_BYPASS_C2H_BRIDGE axis2tlm_bridge<{DMA_DATA_WIDTH}>', result)
+        pattern, f'#define XDMA_BYPASS_C2H_BRIDGE axis2tlm_bridge<DMA_DATA_WIDTH>', result)
     pattern = r'#define XDMA_BYPASS_H2C_BRIDGE\s+(.*)'
     result = re.sub(
-        pattern, f'#define XDMA_BYPASS_H2C_BRIDGE tlm2axis_bridge<{DMA_DATA_WIDTH}>', result)
+        pattern, f'#define XDMA_BYPASS_H2C_BRIDGE tlm2axis_bridge<DMA_DATA_WIDTH>', result)
 with open(REL_PATH_TO_XDMA_DEMO, "w") as file:
     file.write(result)

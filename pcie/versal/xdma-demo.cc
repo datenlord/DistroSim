@@ -79,8 +79,8 @@ using namespace std;
 // You should not change the following setting manually
 // Instead, try to use `xdma_signal_generator.py` to generate the following setting
 #define XDMA_CHANNEL_NUM 1
-#define XDMA_BYPASS_H2C_BRIDGE tlm2axis_bridge<256>
-#define XDMA_BYPASS_C2H_BRIDGE axis2tlm_bridge<256>
+#define XDMA_BYPASS_H2C_BRIDGE tlm2axis_bridge<DMA_DATA_WIDTH>
+#define XDMA_BYPASS_C2H_BRIDGE axis2tlm_bridge<DMA_DATA_WIDTH>
 
 class pcie_versal : public pci_device_base {
  private:

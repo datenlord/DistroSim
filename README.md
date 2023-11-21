@@ -13,7 +13,7 @@ The Makefile will try to convert verilog to systemC firstly and compile it with 
 
 ### Configure Channels
 ```bash
-# ./xdma_signal_generator.py  -h
+# scripts/xdma_signal_generator.py  -h
 usage: xdma_signal_generator.py [-h] [--n_channels N_CHANNELS] [--channel_type {mm,stream}] [--dma_data_width DMA_DATA_WIDTH] [--dma_addr_width DMA_ADDR_WIDTH] [--bridge_addr_width BRIDGE_ADDR_WIDTH] [--bridge_data_width BRIDGE_DATA_WIDTH]
 
 Command line arguments for configuring XDMA demo settings
