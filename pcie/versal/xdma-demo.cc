@@ -182,7 +182,6 @@ PhysFuncConfig getPhysFuncConfig() {
   PCIExpressCapability pcie_cap;
   MSIXCapability msix_cap;
   uint32_t bar_flags = PCI_BASE_ADDRESS_MEM_TYPE_32;
-  // uint32_t msixTableSz = NR_IRQ;
   uint32_t table_offset = 0x100 | 4;  // Table offset: 0, BIR: 4
   uint32_t pba = 0x140000 | 4;       // BIR: 4
   uint32_t max_link_width;

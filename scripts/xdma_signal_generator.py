@@ -199,7 +199,7 @@ for i in range(N_CHANNELS):
     for signal in signals:
         is_adapter, name = signal["is_adapter"], signal["name"]
         if "tuser" in name or "tstrb" in name:
-            continue  # 没接线
+            continue  # Currently we don't have these signals in user logic
         if not is_adapter:
             new_content += f"\t\tdev->{name}({name});\n"
         else:
