@@ -2,7 +2,7 @@
 import argparse
 import re
 N_CHANNELS = 1
-CHANNEL_TYPE = "stream"  # "mm" or "stream
+CHANNEL_TYPE = "stream"  # "mm" for `memory mapped` or "stream
 PREFIX = "xdmaChannel"
 REL_PATH_TO_XDMA_SIGNAL_H = "libsystemctlm-soc/soc/pci/xilinx/xdma_signal.h"
 REL_PATH_TO_XDMA_DEMO = "pcie/versal/xdma-demo.cc"
@@ -232,9 +232,9 @@ for i in range(N_CHANNELS):
             new_content += f"\t\tdev->descriptor_bypass_channels[{i}].dsc_bypass_bridge_{channel_ty}.{short_name}({signal_name});\n"
         else:
             if "tstrb" in signal_name:
-                continue  # 没接线
+                continue  # tlm2axis_bridge doesn't have tstrb
             if "tkeep" in signal_name:
-                short_name = "tstrb"  # tkeep -> tstrb，特殊处理
+                short_name = "tstrb"  # Currently, we connect user logic `tkeep` to XDMA bridge `tstrb`
             if not signal["is_adapter"]:
                 new_content += f"\t\tdev->descriptor_bypass_channels[{i}].{channel_ty}_bridge.{short_name}({signal_name});\n"
             else:

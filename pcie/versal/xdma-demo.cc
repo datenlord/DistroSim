@@ -124,12 +124,9 @@ class pcie_versal : public pci_device_base {
         xdma("xdma", XDMA_CHANNEL_NUM),
         xdma_signals("xdma_signals"),
         clock_signal("clock", 10, SC_NS),
-        // xdma_h2c_signal("xdma-h2c-signal"),
-        // xdma_c2h_signal("xdma-c2h-signal"),
         user_bar_init_socket("user_bar_init_socket"),
         cfg_init_socket("cfg_init_socket"),
         brdg_dma_tgt_socket("brdg-dma-tgt-socket")
-  // signals_irq("signals_irq", NR_IRQ)
   {
     //
     // Init user logic
@@ -196,7 +193,6 @@ PhysFuncConfig getPhysFuncConfig() {
 
   cfg.SetPCIBAR0(256 * KiB, bar_flags);
   cfg.SetPCIBAR1(256 * KiB, bar_flags);
-  // cfg.SetPCIBAR2(256 * KiB, bar_flags);
 
   cfg.SetPCISubsystemVendorID(PCI_VENDOR_ID_XILINX);
   cfg.SetPCISubsystemID(PCI_SUBSYSTEM_ID_XILINX_TEST);
@@ -251,9 +247,7 @@ SC_MODULE(Top) {
 
   PCIeController pcie_ctlr;
   pcie_versal xdma;
-  //
-  // Reset signal.
-  //
+
   sc_signal<bool> rst;
   sc_signal<bool> rst_n;
 
@@ -300,9 +294,7 @@ void usage() {
 }
 
 int sc_main(int argc, char* argv[]) {
-  Top* top;
   uint64_t sync_quantum;
-  // sc_trace_file *trace_fp = NULL;
 
   Verilated::commandArgs(argc, argv);
 
@@ -313,7 +305,7 @@ int sc_main(int argc, char* argv[]) {
   }
   sc_set_time_resolution(1, SC_PS);
 
-  top = new Top("top", argv[1], sc_time(static_cast<double>(sync_quantum), SC_NS));
+  new Top("top", argv[1], sc_time(static_cast<double>(sync_quantum), SC_NS));
 
   if (argc < 3) {
     sc_start(1, SC_PS);
@@ -322,14 +314,7 @@ int sc_main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  // trace_fp = sc_create_vcd_trace_file("trace");
-  // if (trace_fp) {
-  // 	trace(trace_fp, *top, top->name());
-  // }
-
   sc_start();
-  // if (trace_fp) {
-  // 	sc_close_vcd_trace_file(trace_fp);
-  // }
+
   return 0;
 }
