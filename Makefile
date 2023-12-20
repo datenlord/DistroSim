@@ -30,11 +30,11 @@ SYSTEMC ?= /usr/local/systemc-2.3.2/
 SYSTEMC_INCLUDE ?=$(SYSTEMC)/include/
 SYSTEMC_LIBDIR ?= $(SYSTEMC)/lib-linux64
 
-VERILATOR_ROOT?=/usr/share/verilator
+VERILATOR_ROOT=/usr/local/share/verilator
 VERILATOR=verilator
 
 CFLAGS += -Wall -O2 -g
-CXXFLAGS += -Wall -O2 -g
+CXXFLAGS += -Wall -O2 -g -std=c++14
 
 CPPFLAGS += -I $(SYSTEMC_INCLUDE)
 CPPFLAGS += -I ./lib
@@ -99,6 +99,7 @@ VFLAGS += -CFLAGS "-DHAVE_VERILOG" -CFLAGS "-DHAVE_VERILOG_VERILATOR"
 VFLAGS += -y $(VFILES_DIR)
 VFLAGS += --pins-bv 31
 VFLAGS += --top-module $(VTOP_BASENAME)
+VFLAGS += -CFLAGS -fPIC
 
 CPPFLAGS += -DHAVE_VERILOG
 CPPFLAGS += -DHAVE_VERILOG_VERILATOR
@@ -118,27 +119,26 @@ TARGETS += $(TARGET_PCIE_XDMA_DEMO)
 all: $(TARGETS)
 
 -include $(PCIE_XDMA_DEMO_OBJS:.o=.d)
-CFLAGS += -MMD
-CXXFLAGS += -MMD
+CFLAGS += -MMD -fPIC
+CXXFLAGS += -MMD -fPIC
 
 ## libpcie ##
 -include pcie-model/libpcie/libpcie.mk
 
 $(VERILATED_O) : $(VFILES_DIR)
 	$(VENV) $(VERILATOR) $(VFLAGS) $(VTOP_FILE)
-	$(MAKE) -C $(VOBJ_DIR) -f V$(VTOP_BASENAME).mk
-	$(MAKE) -C $(VOBJ_DIR) -f V$(VTOP_BASENAME).mk $(VERILATED_O)
+	$(MAKE) -C $(VOBJ_DIR) -j8 -f V$(VTOP_BASENAME).mk
+	$(MAKE) -C $(VOBJ_DIR) -j8 -f V$(VTOP_BASENAME).mk $(VERILATED_O)
 
 # Generating header file and the verilated.o
 $(VOBJ_DIR)/V$(VTOP_BASENAME).h: $(VERILATED_O)
 
 $(TARGET_PCIE_XDMA_DEMO): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
-$(TARGET_PCIE_XDMA_DEMO): LDLIBS += libpcie.a
+$(TARGET_PCIE_XDMA_DEMO): LDLIBS += libpcie.a 
 $(TARGET_PCIE_XDMA_DEMO): $(VERILATED_O) $(PCIE_XDMA_DEMO_OBJS) libpcie.a 
-	$(CXX) $(LDFLAGS) -o $@ $(PCIE_XDMA_DEMO_OBJS) $(LDLIBS) $(VOBJ_DIR)/$(VERILATED_O)
+	LD_LIBRARY_PATH=$(SYSTEMC_LIBDIR) $(CXX) $(LDFLAGS) -o $@ $(PCIE_XDMA_DEMO_OBJS) $(VOBJ_DIR)/$(VERILATED_O) $(LDLIBS) 
 	
 clean:
 	$(RM) $(OBJS) $(OBJS:.o=.d) $(TARGETS)
 	$(RM) -r libpcie libpcie.a
 	$(RM) $(TARGET_PCIE_XDMA_DEMO) $(PCIE_XDMA_DEMO_OBJS)
-	$(RM) -r $(VOBJ_DIR)
