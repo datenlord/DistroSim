@@ -6,7 +6,7 @@ CHANNEL_TYPE = "stream"  # "mm" for `memory mapped` or "stream
 PREFIX = "xdmaChannel"
 REL_PATH_TO_XDMA_SIGNAL_H = "libsystemctlm-soc/soc/pci/xilinx/xdma_signal.h"
 REL_PATH_TO_XDMA_DEMO = "pcie/versal/xdma-demo.cc"
-DMA_DATA_WIDTH = 256
+DMA_DATA_WIDTH = 512
 DMA_ADDR_WIDTH = 64
 BRIDGE_ADDR_WIDTH = 32
 BRIDGE_DATA_WIDTH = 32
@@ -123,13 +123,13 @@ parser.add_argument("--n_channels", type=int, default=1,
 parser.add_argument("--channel_type", type=str, default="stream", choices=[
                     "mm", "stream"], help="Channel type: 'mm' for AXI or 'stream' for AXIs")
 parser.add_argument("--dma_data_width", type=int,
-                    default=256, help="DMA data width")
+                    default=DMA_DATA_WIDTH, help="DMA data width")
 parser.add_argument("--dma_addr_width", type=int,
-                    default=64, help="DMA address width")
+                    default=DMA_ADDR_WIDTH, help="DMA address width")
 parser.add_argument("--bridge_addr_width", type=int,
-                    default=32, help="Bridge address width")
+                    default=BRIDGE_ADDR_WIDTH, help="Bridge address width")
 parser.add_argument("--bridge_data_width", type=int,
-                    default=32, help="Bridge data width")
+                    default=BRIDGE_DATA_WIDTH, help="Bridge data width")
 
 args = parser.parse_args()
 N_CHANNELS = args.n_channels

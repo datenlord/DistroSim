@@ -21,8 +21,10 @@
  * THE SOFTWARE.	
  */
 
+#include <cstdint>
 #include "soc/pci/xilinx/xdma_signal.h"
 #include "sysc/communication/sc_clock.h"
+#include "sysc/datatypes/int/sc_nbdefs.h"
 #include "sysc/kernel/sc_module.h"
 #include "sysc/kernel/sc_time.h"
 #include "sysc/utils/sc_report.h"
@@ -42,7 +44,6 @@
 #include "soc/pci/core/pcie-root-port.h"
 #include "soc/pci/xilinx/xdma.h"
 #include "tlm-modules/pcie-controller.h"
-
 
 #include "debugdev.h"
 #include "iconnect.h"
@@ -110,6 +111,7 @@ class pcie_versal : public pci_device_base {
   xdma_signal xdma_signals;
 
   sc_clock clock_signal;
+  sc_clock slow_clock_signal;
 
   // BARs towards the XDMA
   tlm_utils::simple_initiator_socket<pcie_versal> user_bar_init_socket;
@@ -119,15 +121,14 @@ class pcie_versal : public pci_device_base {
   tlm_utils::simple_target_socket<pcie_versal> brdg_dma_tgt_socket;
 
   explicit pcie_versal(const sc_core::sc_module_name& name)
-      :
-        pci_device_base(name, NR_MMIO_BAR, NR_IRQ),
+      : pci_device_base(name, NR_MMIO_BAR, NR_IRQ),
         xdma("xdma", XDMA_CHANNEL_NUM),
         xdma_signals("xdma_signals"),
         clock_signal("clock", 10, SC_NS),
+        slow_clock_signal("slow_clock", 20, SC_NS),
         user_bar_init_socket("user_bar_init_socket"),
         cfg_init_socket("cfg_init_socket"),
-        brdg_dma_tgt_socket("brdg-dma-tgt-socket")
-  {
+        brdg_dma_tgt_socket("brdg-dma-tgt-socket") {
     //
     // Init user logic
     //
@@ -138,14 +139,15 @@ class pcie_versal : public pci_device_base {
     // setup clk
     for (int i = 0; i < XDMA_CHANNEL_NUM; i++) {
       xdma.descriptor_bypass_channels[i].dsc_bypass_bridge_h2c.clk(
-          clock_signal);
+          slow_clock_signal);
       xdma.descriptor_bypass_channels[i].dsc_bypass_bridge_c2h.clk(
-          clock_signal);
-      xdma.descriptor_bypass_channels[i].h2c_bridge.clk(clock_signal);
-      xdma.descriptor_bypass_channels[i].c2h_bridge.clk(clock_signal);
+          slow_clock_signal);
+      xdma.descriptor_bypass_channels[i].h2c_bridge.clk(slow_clock_signal);
+      xdma.descriptor_bypass_channels[i].c2h_bridge.clk(slow_clock_signal);
     }
-    xdma.user_bar.clk(clock_signal);
+    xdma.user_bar.clk(slow_clock_signal);
     user_logic->CLK(clock_signal);
+    user_logic->CLK_slowClock(slow_clock_signal);
 
     //
     // XDMA connections
@@ -163,6 +165,7 @@ class pcie_versal : public pci_device_base {
   void rstn(sc_signal<bool>& rst_n) {
     xdma.reset();
     user_logic->RST_N(rst_n);
+    user_logic->RST_N_slowReset(rst_n);
     for (int i = 0; i < XDMA_CHANNEL_NUM; i++) {
       xdma.descriptor_bypass_channels[i].dsc_bypass_bridge_c2h.resetn(rst_n);
       xdma.descriptor_bypass_channels[i].dsc_bypass_bridge_h2c.resetn(rst_n);
@@ -180,7 +183,7 @@ PhysFuncConfig getPhysFuncConfig() {
   MSIXCapability msix_cap;
   uint32_t bar_flags = PCI_BASE_ADDRESS_MEM_TYPE_32;
   uint32_t table_offset = 0x100 | 4;  // Table offset: 0, BIR: 4
-  uint32_t pba = 0x140000 | 4;       // BIR: 4
+  uint32_t pba = 0x140000 | 4;        // BIR: 4
   uint32_t max_link_width;
 
   cfg.SetPCIVendorID(PCI_VENDOR_ID_XILINX);
@@ -203,7 +206,7 @@ PhysFuncConfig getPhysFuncConfig() {
   max_link_width = 1 << 4;
   pcie_cap.SetDeviceCapabilities(PCI_EXP_DEVCAP_RBER);
   pcie_cap.SetLinkCapabilities(PCI_EXP_LNKCAP_SLS_2_5GB | max_link_width |
-                              PCI_EXP_LNKCAP_ASPM_L0S);
+                               PCI_EXP_LNKCAP_ASPM_L0S);
   pcie_cap.SetLinkStatus(PCI_EXP_LNKSTA_CLS_2_5GB | PCI_EXP_LNKSTA_NLW_X1);
   cfg.AddPCICapability(pcie_cap);
 
