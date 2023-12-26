@@ -99,7 +99,6 @@ class pcie_versal : public pci_device_base {
   // Forward DMA requests received from the CPM5 QDMA
   //
   void fwd_dma_b_transport(tlm::tlm_generic_payload& trans, sc_time& delay) {
-    // trans.set_response_status(tlm::TLM_OK_RESPONSE);
     dma->b_transport(trans, delay);
   }
 
