@@ -27,14 +27,16 @@
 INSTALL ?= install
 
 SYSTEMC ?= /usr/local/systemc-2.3.2/
+PYBIND11_INCLUDE ?= /usr/local/include/pybind11
+PYTHON_INCLUDE ?= /usr/include/python3.10
 SYSTEMC_INCLUDE ?=$(SYSTEMC)/include/
 SYSTEMC_LIBDIR ?= $(SYSTEMC)/lib-linux64
 
 VERILATOR_ROOT=/usr/local/share/verilator
 VERILATOR=verilator
 
-CFLAGS += -Wall -O2 -g
-CXXFLAGS += -Wall -O2 -g -std=c++14
+CFLAGS += -Wall -g
+CXXFLAGS += -Wall -g -std=c++14
 
 CPPFLAGS += -I $(SYSTEMC_INCLUDE)
 CPPFLAGS += -I ./lib
@@ -48,6 +50,10 @@ PCIE_MODEL_CPPFLAGS += -I pcie-model/libpcie/src -I pcie-model/
 PCIE_XDMA_DEMO_C = pcie/versal/xdma-demo.cc
 PCIE_XDMA_DEMO_O = $(PCIE_XDMA_DEMO_C:.cc=.o)
 PCIE_XDMA_DEMO_OBJS += $(PCIE_XDMA_DEMO_O) $(PCIE_MODEL_O)
+
+PYTHON_XDMA_C = python/pyxdma_wrapper.cc
+PYTHON_XDMA_O = $(PYTHON_XDMA_C:.cc=.o)
+PYTHON_XDMA_OBJS += $(PYTHON_XDMA_O) $(PCIE_MODEL_O)
 
 VOBJ_DIR=obj_dir
 VFILES_DIR=bsv
@@ -109,16 +115,20 @@ CPPFLAGS += -I $(VERILATOR_ROOT)/include
 OBJS = $(C_OBJS) $(SC_OBJS)
 
 PCIE_XDMA_DEMO_OBJS += $(OBJS)
+PYTHON_XDMA_OBJS += $(OBJS)
 
 TARGET_PCIE_XDMA_DEMO = pcie/versal/xdma-demo
+TARGET_PYTHON_XDMA = python/libxdma.so
 
 PCIE_MODEL_DIR=pcie-model/tlm-modules
 
 TARGETS += $(TARGET_PCIE_XDMA_DEMO)
+TARGETS += $(TARGET_PYTHON_XDMA)
 
 all: $(TARGETS)
 
 -include $(PCIE_XDMA_DEMO_OBJS:.o=.d)
+-include $(PYTHON_XDMA_OBJS:.o=.d)
 CFLAGS += -MMD -fPIC
 CXXFLAGS += -MMD -fPIC
 
@@ -137,6 +147,12 @@ $(TARGET_PCIE_XDMA_DEMO): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
 $(TARGET_PCIE_XDMA_DEMO): LDLIBS += libpcie.a 
 $(TARGET_PCIE_XDMA_DEMO): $(VERILATED_O) $(PCIE_XDMA_DEMO_OBJS) libpcie.a 
 	LD_LIBRARY_PATH=$(SYSTEMC_LIBDIR) $(CXX) $(LDFLAGS) -o $@ $(PCIE_XDMA_DEMO_OBJS) $(VOBJ_DIR)/$(VERILATED_O) $(LDLIBS) 
+
+$(TARGET_PYTHON_XDMA): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
+$(TARGET_PYTHON_XDMA): CPPFLAGS += -I $(PYTHON_INCLUDE) -I $(PYBIND11_INCLUDE) 
+$(TARGET_PYTHON_XDMA): LDLIBS += libpcie.a
+$(TARGET_PYTHON_XDMA): $(PYTHON_XDMA_OBJS) libpcie.a
+	LD_LIBRARY_PATH=$(SYSTEMC_LIBDIR) $(CXX) -shared $(LDFLAGS) -o $@ $(PYTHON_XDMA_OBJS) $(VOBJ_DIR)/$(VERILATED_O) $(LDLIBS) 
 	
 clean:
 	$(RM) $(OBJS) $(OBJS:.o=.d) $(TARGETS)
