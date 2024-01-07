@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2022, Advanced Micro Devices, Inc.
- * Written by Fred Konrad
+ * Written by Qiu Qichen
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -61,10 +60,6 @@
 
 #define PCI_CLASS_BASE_NETWORK_CONTROLLER (0x02)
 
-#ifndef PCI_EXP_LNKCAP_ASPM_L0S
-#define PCI_EXP_LNKCAP_ASPM_L0S 0x00000400 /* ASPM L0s Support */
-#endif
-
 #define KiB (1024)
 #define RAM_SIZE (4 * 8 * KiB)
 
@@ -77,33 +72,9 @@
 #define XDMA_BYPASS_H2C_BRIDGE tlm2axis_bridge<DMA_DATA_WIDTH>
 #define XDMA_BYPASS_C2H_BRIDGE axis2tlm_bridge<DMA_DATA_WIDTH>
 
-class pcie_versal : public pci_device_base {
- private:
-  void bar_b_transport(int bar_nr, tlm::tlm_generic_payload& trans,
-                       sc_time& delay) override {
-    switch (bar_nr) {
-      case XDMA_USER_BAR_ID:
-        user_bar_init_socket->b_transport(trans, delay);
-        break;
-      case XDMA_CONFIG_BAR_ID:
-        cfg_init_socket->b_transport(trans, delay);
-        break;
-      default:
-        SC_REPORT_ERROR("pcie_versal", "writing to an unimplemented bar");
-        trans.set_response_status(tlm::TLM_GENERIC_ERROR_RESPONSE);
-        break;
-    }
-  }
-
-  //
-  // Forward DMA requests received from the CPM5 QDMA
-  //
-  void fwd_dma_b_transport(tlm::tlm_generic_payload& trans, sc_time& delay) {
-    dma->b_transport(trans, delay);
-  }
-
+class xdma_top : public pci_device_base {
  public:
-  SC_HAS_PROCESS(pcie_versal);
+  SC_HAS_PROCESS(xdma_top);
 
   xilinx_xdma<XDMA_BYPASS_H2C_BRIDGE, XDMA_BYPASS_C2H_BRIDGE> xdma;
   VmkBsvTop* user_logic;
@@ -113,13 +84,13 @@ class pcie_versal : public pci_device_base {
   sc_clock slow_clock_signal;
 
   // BARs towards the XDMA
-  tlm_utils::simple_initiator_socket<pcie_versal> user_bar_init_socket;
-  tlm_utils::simple_initiator_socket<pcie_versal> cfg_init_socket;
+  tlm_utils::simple_initiator_socket<xdma_top> user_bar_init_socket;
+  tlm_utils::simple_initiator_socket<xdma_top> cfg_init_socket;
 
-  // QDMA towards PCIe interface (host)
-  tlm_utils::simple_target_socket<pcie_versal> brdg_dma_tgt_socket;
+  // XDMA towards PCIe interface (host)
+  tlm_utils::simple_target_socket<xdma_top> brdg_dma_tgt_socket;
 
-  explicit pcie_versal(const sc_core::sc_module_name& name)
+  explicit xdma_top(const sc_core::sc_module_name& name)
       : pci_device_base(name, NR_MMIO_BAR, NR_IRQ),
         xdma("xdma", XDMA_CHANNEL_NUM),
         xdma_signals("xdma_signals"),
@@ -158,7 +129,7 @@ class pcie_versal : public pci_device_base {
     xdma.dmac.bind(brdg_dma_tgt_socket);
 
     brdg_dma_tgt_socket.register_b_transport(this,
-                                             &pcie_versal::fwd_dma_b_transport);
+                                             &xdma_top::fwd_dma_b_transport);
   }
 
   void rstn(sc_signal<bool>& rst_n) {
@@ -173,8 +144,39 @@ class pcie_versal : public pci_device_base {
     }
     xdma.user_bar.resetn(rst_n);
   }
+
+ private:
+  void bar_b_transport(int bar_nr, tlm::tlm_generic_payload& trans,
+                       sc_time& delay) override {
+    auto src_addr = static_cast<uint64_t>(trans.get_address());
+    auto dst_addr = reinterpret_cast<uint64_t>(trans.get_data_ptr());
+    auto cmd = trans.get_command();
+    auto len = trans.get_data_length();
+    printf("visit bar: bar_nr=%d, src_addr=%lx, dst_addr=%lx, cmd=%d, len=%d\n",
+           bar_nr, src_addr, dst_addr, cmd, len);
+    switch (bar_nr) {
+      case XDMA_USER_BAR_ID:
+        user_bar_init_socket->b_transport(trans, delay);
+        break;
+      case XDMA_CONFIG_BAR_ID:
+        cfg_init_socket->b_transport(trans, delay);
+        break;
+      default:
+        SC_REPORT_ERROR("xdma_top", "writing to an unimplemented bar");
+        trans.set_response_status(tlm::TLM_GENERIC_ERROR_RESPONSE);
+        break;
+    }
+  }
+
+  //
+  // Forward DMA requests received from the XDMA
+  //
+  void fwd_dma_b_transport(tlm::tlm_generic_payload& trans, sc_time& delay) {
+    dma->b_transport(trans, delay);
+  }
 };
 
+/// configure the PCIe property
 PhysFuncConfig getPhysFuncConfig() {
   PhysFuncConfig cfg;
   PMCapability pm_cap;
@@ -248,7 +250,7 @@ SC_MODULE(Top) {
   pcie_host host;
 
   PCIeController pcie_ctlr;
-  pcie_versal xdma;
+  xdma_top xdma;
 
   sc_signal<bool> rst;
   sc_signal<bool> rst_n;
@@ -307,7 +309,8 @@ int sc_main(int argc, char* argv[]) {
   }
   sc_set_time_resolution(1, SC_PS);
 
-  new Top("top", argv[1], sc_time(static_cast<double>(sync_quantum), SC_NS));
+  new Top("top", argv[1],
+                sc_time(static_cast<double>(sync_quantum), SC_NS));
 
   if (argc < 3) {
     sc_start(1, SC_PS);
