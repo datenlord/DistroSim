@@ -1,13 +1,13 @@
 #ifndef XDMA_TOP__H
 #define XDMA_TOP__H
 #include "VmkBsvTop.h"
-#include "initiator.h"
+#include "distrosim.h"
+#include "generic_initiator.h"
+#include "generic_target.h"
 #include "soc/pci/xilinx/xdma_bridge.h"
 #include "soc/pci/xilinx/xdma_signal.h"
-#include "target.h"
 #include "tlm-bridges/tlm2axilite-bridge.h"
 #define XDMA_CHANNEL_NUM 1
-
 
 /// A XDMA descriptor bypass channel
 class xdma_wrapper_descriptor_bypass : public sc_module {
@@ -36,18 +36,18 @@ class xdma_wrapper : public sc_module {
 };
 
 /// A top module to connect the xdma_wrapper and user logic
-class Top : public sc_module {
+class xdma_top : public sc_module, public distrosim_top {
  public:
-  SC_HAS_PROCESS(Top);
+  SC_HAS_PROCESS(xdma_top);
 
   // python interface
-  Initiator py_user_bar;
-  Initiator py_h2c_data;
-  Target py_c2h_data;
-  Target py_dsc_bypass_h2c;
-  Target py_dsc_bypass_c2h;
+  generic_initiator py_user_bar;
+  generic_initiator py_h2c_data;
+  generic_target py_c2h_data;
+  generic_target py_dsc_bypass_h2c;
+  generic_target py_dsc_bypass_c2h;
 
-  explicit Top(const sc_module_name& name)
+  explicit xdma_top(const sc_module_name& name)
       : sc_module(name),
         py_user_bar("py_user_bar"),
         py_h2c_data("py_h2c_data"),
@@ -107,19 +107,36 @@ class Top : public sc_module {
   }
 
   /// python interface for user_bar
-  Initiator& get_py_user_bar() { return py_user_bar; }
+  generic_initiator& get_py_user_bar() { return py_user_bar; }
 
   /// python interface for h2c_data
-  Initiator& get_py_h2c_data() { return py_h2c_data; }
+  generic_initiator& get_py_h2c_data() { return py_h2c_data; }
 
   /// python interface for c2h_data
-  Target& get_py_c2h_data() { return py_c2h_data; }
+  generic_target& get_py_c2h_data() { return py_c2h_data; }
 
   /// python interface for dsc_bypass_h2c
-  Target& get_py_dsc_bypass_h2c() { return py_dsc_bypass_h2c; }
+  generic_target& get_py_dsc_bypass_h2c() { return py_dsc_bypass_h2c; }
 
   /// python interface for dsc_bypass_c2h
-  Target& get_py_dsc_bypass_c2h() { return py_dsc_bypass_c2h; }
+  generic_target& get_py_dsc_bypass_c2h() { return py_dsc_bypass_c2h; }
+
+  static void register_to_pybind11(py::module& module) {
+    py::class_<xdma_top>(module, "xdma_top")
+        .def("get_top", &xdma_top::get_top)
+        .def_property_readonly("py_user_bar", &xdma_top::get_py_user_bar)
+        .def_property_readonly("py_h2c_data", &xdma_top::get_py_h2c_data)
+        .def_property_readonly("py_c2h_data", &xdma_top::get_py_c2h_data)
+        .def_property_readonly("py_dsc_bypass_h2c",
+                               &xdma_top::get_py_dsc_bypass_h2c)
+        .def_property_readonly("py_dsc_bypass_c2h",
+                               &xdma_top::get_py_dsc_bypass_c2h);
+  }
+
+  static xdma_top* get_top() {
+    static xdma_top instance("xdma");
+    return &instance;
+  }
 
  private:
   void pull_reset() {

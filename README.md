@@ -54,9 +54,9 @@ make install
 ```
 
 #### Build python wrapper
-Use `make python/libxdma.so` to compile libxdma.so. 
+Use `make python/libdistrosim.so` to compile libdistrosim.so. 
 
-The you can use python to import `libxdma` .
+The you can use python to import `libdistrosim` .
 
 Before you use the dynamic linking, make sure SystemC path is in the `LD_LIBRARY_PATH`
 ```

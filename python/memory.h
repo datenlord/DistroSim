@@ -70,11 +70,6 @@ class memory {
 
   uint64_t get_raw_addr() { return reinterpret_cast<uint64_t>(data_); }
 
-  // TODO: double free here
-  // ~memory() {
-  //     delete[] data_;
-  // }
-
  private:
   template <uint64_t OFFSET>
   inline void check_addr(uint64_t addr) const {
