@@ -268,7 +268,7 @@ SC_MODULE(Top) {
     pcie_ctlr.init_socket.bind(host.rootport.tgt_socket);
 
     //
-    // PCIeController <-> QDMA connections
+    // PCIeController <-> XDMA connections
     //
     pcie_ctlr.bind(xdma);
 
