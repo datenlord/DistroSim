@@ -34,10 +34,14 @@
 #define COUNTER_END_CONDITION MEMORY_HEAD_POINTER_VAL
 
 struct xdma_unittest_context {
-  /// a page of memory for testing
-  /// Note that the memory **should** alligned to 4K
+  // a page of memory for testing
+  // Note that the memory **should** alligned to 4K
   char* memory;
+  
+  // a counter for counting the number of c2h data transfer transactions
   int counter{0};
+
+  // an event for notifying the end of transaction
   sc_event end_of_transaction;
 };
 
