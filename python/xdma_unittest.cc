@@ -70,6 +70,7 @@ class card_to_host_descriptor_bypass_module {
   generic_target c2h_data_transfer;
 };
 
+// generate stimuli for user bar initiator 
 void user_bar_init_thread(generic_initiator* self,
                           std::shared_ptr<xdma_unittest_context>& context) {
   tlm::tlm_generic_payload payload;
@@ -129,6 +130,7 @@ void user_bar_init_thread(generic_initiator* self,
   sc_stop();
 }
 
+// handle host-to-card descriptor bypass TLM transaction
 void descriptor_bypass_h2c_handler(generic_target* self,
                                    tlm::tlm_generic_payload* payload,
                                    sc_core::sc_time* /*delay*/) {
@@ -163,6 +165,7 @@ void descriptor_bypass_h2c_handler(generic_target* self,
   payload->set_response_status(tlm::TLM_OK_RESPONSE);
 }
 
+// handle card-to-host descriptor bypass TLM transaction
 void descriptor_bypass_c2h_handler(generic_target* /*self*/,
                                    tlm::tlm_generic_payload* payload,
                                    sc_core::sc_time* /*delay*/) {
@@ -179,6 +182,7 @@ void descriptor_bypass_c2h_handler(generic_target* /*self*/,
   payload->set_response_status(tlm::TLM_OK_RESPONSE);
 }
 
+// handle card-to-host data transfer.
 void c2h_data_transfer_handler(
     generic_target* /*target*/, tlm::tlm_generic_payload* payload,
     sc_core::sc_time* /*delay*/,
