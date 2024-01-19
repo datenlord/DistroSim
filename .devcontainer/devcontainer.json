@@ -1,0 +1,14 @@
+{
+    "name": "XDMA SystemC development environment",
+    "dockerFile": "Dockerfile",
+  
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "llvm-vs-code-extensions.vscode-clangd"
+        ]
+      }
+    },
+    "runArgs": ["--privileged"]
+  }
+  

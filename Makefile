@@ -26,62 +26,39 @@
 
 INSTALL ?= install
 
-ifneq "$(VCS_HOME)" ""
-SYSTEMC_INCLUDE ?=$(VCS_HOME)/include/systemc232/
-SYSTEMC_LIBDIR ?= $(VCS_HOME)/linux/lib
-TLM2 ?= $(VCS_HOME)/etc/systemc/tlm/
-
-HAVE_VERILOG=y
-HAVE_VERILOG_VERILATOR?=n
-HAVE_VERILOG_VCS=y
-else
 SYSTEMC ?= /usr/local/systemc-2.3.2/
+PYBIND11_INCLUDE ?= /usr/local/include/pybind11
+PYTHON_INCLUDE ?= /usr/include/python3.10
 SYSTEMC_INCLUDE ?=$(SYSTEMC)/include/
 SYSTEMC_LIBDIR ?= $(SYSTEMC)/lib-linux64
-# In case your TLM-2.0 installation is not bundled with
-# with the SystemC one.
-# TLM2 ?= /opt/systemc/TLM-2009-07-15
-endif
 
-SCML ?= /usr/local/scml-2.3/
-SCML_INCLUDE ?= $(SCML)/include/
-SCML_LIBDIR ?= $(SCML)/lib-linux64/
+VERILATOR_ROOT=/usr/local/share/verilator
+VERILATOR=verilator
 
-HAVE_VERILOG?=n
-HAVE_VERILOG_VERILATOR?=n
-HAVE_VERILOG_VCS?=n
+CFLAGS += -Wall -g
+CXXFLAGS += -Wall -g -std=c++14
 
-CFLAGS += -Wall -O2 -g
-CXXFLAGS += -Wall -O2 -g
-
-ifneq "$(SYSTEMC_INCLUDE)" ""
 CPPFLAGS += -I $(SYSTEMC_INCLUDE)
-endif
-ifneq "$(TLM2)" ""
-CPPFLAGS += -I $(TLM2)/include/tlm
-endif
-
-# CPPFLAGS += -I .
 CPPFLAGS += -I ./lib
 LDFLAGS  += -L $(SYSTEMC_LIBDIR)
-#LDLIBS += -pthread -Wl,-Bstatic -lsystemc -Wl,-Bdynamic
 LDLIBS   += -pthread -lsystemc
 
 PCIE_MODEL_O = pcie-model/tlm-modules/pcie-controller.o
 PCIE_MODEL_O += pcie-model/tlm-modules/libpcie-callbacks.o
 PCIE_MODEL_CPPFLAGS += -I pcie-model/libpcie/src -I pcie-model/
 
-VERSAL_CPM_QDMA_DEMO_C = pcie/versal/cpm-qdma-demo.cc
-VERSAL_CPM4_QDMA_DEMO_O = pcie/versal/cpm4-qdma-demo.o
-VERSAL_CPM5_QDMA_DEMO_O = pcie/versal/cpm5-qdma-demo.o
+XDMA_COSIM_C = cosim/xdma_cosim.cc
+XDMA_COSIM_O = $(XDMA_COSIM_C:.cc=.o)
+XDMA_COSIM_OBJS += $(XDMA_COSIM_O) $(PCIE_MODEL_O)
 
-VERSAL_CPM4_QDMA_DEMO_OBJS += $(VERSAL_CPM4_QDMA_DEMO_O) $(PCIE_MODEL_O)
-VERSAL_CPM5_QDMA_DEMO_OBJS += $(VERSAL_CPM5_QDMA_DEMO_O) $(PCIE_MODEL_O)
+PYTHON_DISTROSIM_C = python/xdma_unittest.cc
+PYTHON_DISTROSIM_O = $(PYTHON_DISTROSIM_C:.cc=.o)
+PYTHON_DISTROSIM_OBJS += $(PYTHON_DISTROSIM_O) $(PCIE_MODEL_O)
 
-# Uncomment to enable use of scml2
-# CPPFLAGS += -I $(SCML_INCLUDE)
-# LDFLAGS += -L $(SCML_LIBDIR)
-# LDLIBS += -lscml2 -lscml2_logging
+VOBJ_DIR=obj_dir
+VFILES_DIR=bsv
+VTOP_FILE=mkBsvTop.v
+VTOP_BASENAME=$(basename $(VTOP_FILE))
 
 SC_OBJS += ./lib/trace.o
 SC_OBJS += ./lib/debugdev.o
@@ -116,112 +93,69 @@ SC_OBJS += $(LIBSOC_PATH)/soc/net/ethernet/xilinx/mrmac/mrmac.o
 CPPFLAGS += -I $(LIBRP_PATH)
 
 VENV=SYSTEMC_INCLUDE=$(SYSTEMC_INCLUDE) SYSTEMC_LIBDIR=$(SYSTEMC_LIBDIR)
-VOBJ_DIR=obj_dir
-VFILES=apb_timer.v
 
-ifeq "$(HAVE_VERILOG_VERILATOR)" "y"
-VERILATOR_ROOT?=/usr/share/verilator
-VERILATOR=verilator
-
-VM_SC?=1
-VM_TRACE?=0
-VM_COVERAGE?=0
-V_LDLIBS += $(VOBJ_DIR)/Vapb_timer__ALL.a
-V_LDLIBS += $(VOBJ_DIR)/Vaxilite_dev__ALL.a
-V_LDLIBS += $(VOBJ_DIR)/Vaxifull_dev__ALL.a
+# Generating pattern: V$(name)__ALL.a
+V_LDLIBS += $(VOBJ_DIR)/V$(VTOP_BASENAME)__ALL.a
 LDLIBS += $(V_LDLIBS)
-VERILATED_O=$(VOBJ_DIR)/verilated.o
+VERILATED_O=verilated.o
 
-# Gives some compatibility with vcs
-VFLAGS += --pins-bv 2 -Wno-fatal
-VFLAGS += --output-split-cfuncs 500
-
-VFLAGS+=--sc --Mdir $(VOBJ_DIR)
+VFLAGS += -Wno-fatal
+VFLAGS += --sc --Mdir $(VOBJ_DIR)
 VFLAGS += -CFLAGS "-DHAVE_VERILOG" -CFLAGS "-DHAVE_VERILOG_VERILATOR"
+VFLAGS += -y $(VFILES_DIR)
+VFLAGS += --pins-bv 31
+VFLAGS += --top-module $(VTOP_BASENAME)
+VFLAGS += -CFLAGS -fPIC
+
 CPPFLAGS += -DHAVE_VERILOG
 CPPFLAGS += -DHAVE_VERILOG_VERILATOR
 CPPFLAGS += -I $(VOBJ_DIR)
-
-ifeq "$(VM_TRACE)" "1"
-VFLAGS += --trace
-SC_OBJS += verilated_vcd_c.o
-SC_OBJS += verilated_vcd_sc.o
-CPPFLAGS += -DVM_TRACE=1
-endif
-endif
-
-ifeq "$(HAVE_VERILOG_VCS)" "y"
-VCS=vcs
-SYSCAN=syscan
-VLOGAN=vlogan
-VHDLAN=vhdlan
-
-CSRC_DIR = csrc
-
-VLOGAN_FLAGS += -sysc
-VLOGAN_FLAGS += +v2k -sc_model apb_slave_timer
-
-VHDLAN_FLAGS += -sysc
-VHDLAN_FLAGS += -sc_model apb_slave_dummy
-
-SYSCAN_ZYNQ_DEMO = zynq_demo.cc
-SYSCAN_ZYNQMP_DEMO = zynqmp_demo.cc
-SYSCAN_ZYNQMP_LMAC2_DEMO = zynqmp_lmac2_demo.cc
-SYSCAN_SCFILES += demo-dma.cc debugdev.cc remote-port-tlm.cc
-VCS_CFILES += remote-port-proto.c remote-port-sk.c safeio.c
-
-SYSCAN_FLAGS += -tlm2 -sysc=opt_if
-SYSCAN_FLAGS += -cflags -DHAVE_VERILOG -cflags -DHAVE_VERILOG_VCS
-VCS_FLAGS += -sysc sc_main -sysc=adjust_timeres
-VFLAGS += -CFLAGS "-DHAVE_VERILOG" -CFLAGS "-DHAVE_VERILOG_VERILATOR"
-endif
+CPPFLAGS += -I $(VERILATOR_ROOT)/include
 
 OBJS = $(C_OBJS) $(SC_OBJS)
 
-VERSAL_CPM4_QDMA_DEMO_OBJS += $(OBJS)
-VERSAL_CPM5_QDMA_DEMO_OBJS += $(OBJS)
+XDMA_COSIM_OBJS += $(OBJS)
+PYTHON_DISTROSIM_OBJS += $(OBJS)
 
-TARGET_VERSAL_CPM4_QDMA_DEMO = pcie/versal/cpm4-qdma-demo
-TARGET_VERSAL_CPM5_QDMA_DEMO = pcie/versal/cpm5-qdma-demo
+TARGET_XDMA_COSIM = cosim/xdma_cosim
+TARGET_PYTHON_DISTROSIM = python/xdma_unittest
 
 PCIE_MODEL_DIR=pcie-model/tlm-modules
-ifneq ($(wildcard $(PCIE_MODEL_DIR)/.),)
-TARGETS += $(TARGET_VERSAL_CPM4_QDMA_DEMO)
-TARGETS += $(TARGET_VERSAL_CPM5_QDMA_DEMO)
-endif
+
+TARGETS += $(TARGET_XDMA_COSIM)
+TARGETS += $(TARGET_PYTHON_DISTROSIM)
 
 all: $(TARGETS)
 
--include $(VERSAL_CPM4_QDMA_DEMO_OBJS:.o=.d)
--include $(VERSAL_CPM5_QDMA_DEMO_OBJS:.o=.d)
-CFLAGS += -MMD
-CXXFLAGS += -MMD
+-include $(XDMA_COSIM_OBJS:.o=.d)
+-include $(PYTHON_DISTROSIM_OBJS:.o=.d)
+CFLAGS += -MMD -fPIC
+CXXFLAGS += -MMD -fPIC
 
 ## libpcie ##
 -include pcie-model/libpcie/libpcie.mk
 
-$(VERSAL_CPM5_QDMA_DEMO_O): $(VERSAL_CPM_QDMA_DEMO_C)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -o $@ $<
+$(VERILATED_O) : $(VFILES_DIR)
+	$(VENV) $(VERILATOR) $(VFLAGS) $(VTOP_FILE)
+	$(MAKE) -C $(VOBJ_DIR) -j8 -f V$(VTOP_BASENAME).mk
+	$(MAKE) -C $(VOBJ_DIR) -j8 -f V$(VTOP_BASENAME).mk $(VERILATED_O)
 
-$(TARGET_VERSAL_CPM5_QDMA_DEMO): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
-$(TARGET_VERSAL_CPM5_QDMA_DEMO): LDLIBS += libpcie.a
-$(TARGET_VERSAL_CPM5_QDMA_DEMO): $(VERSAL_CPM5_QDMA_DEMO_OBJS) libpcie.a
-	$(CXX) $(LDFLAGS) -o $@ $(VERSAL_CPM5_QDMA_DEMO_OBJS) $(LDLIBS)
+# Generating header file and the verilated.o
+$(VOBJ_DIR)/V$(VTOP_BASENAME).h: $(VERILATED_O)
 
-$(VERSAL_CPM4_QDMA_DEMO_O): $(VERSAL_CPM_QDMA_DEMO_C)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -DQDMA_CPM4_VERSION -c -o $@ $<
+$(TARGET_XDMA_COSIM): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
+$(TARGET_XDMA_COSIM): LDLIBS += libpcie.a 
+$(TARGET_XDMA_COSIM): $(VERILATED_O) $(XDMA_COSIM_OBJS) libpcie.a 
+	LD_LIBRARY_PATH=$(SYSTEMC_LIBDIR) $(CXX) $(LDFLAGS) -o $@ $(XDMA_COSIM_OBJS) $(VOBJ_DIR)/$(VERILATED_O) $(LDLIBS) 
 
-$(TARGET_VERSAL_CPM4_QDMA_DEMO): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
-$(TARGET_VERSAL_CPM4_QDMA_DEMO): LDLIBS += libpcie.a
-$(TARGET_VERSAL_CPM4_QDMA_DEMO): $(VERSAL_CPM4_QDMA_DEMO_OBJS) libpcie.a
-	$(CXX) $(LDFLAGS) -o $@ $(VERSAL_CPM4_QDMA_DEMO_OBJS) $(LDLIBS)
-
-verilated_%.o: $(VERILATOR_ROOT)/include/verilated_%.cpp
-
+$(TARGET_PYTHON_DISTROSIM): CPPFLAGS += $(PCIE_MODEL_CPPFLAGS)
+$(TARGET_PYTHON_DISTROSIM): CPPFLAGS += -I $(PYTHON_INCLUDE) -I $(PYBIND11_INCLUDE) 
+$(TARGET_PYTHON_DISTROSIM): LDLIBS += libpcie.a
+$(TARGET_PYTHON_DISTROSIM): $(PYTHON_DISTROSIM_OBJS) libpcie.a
+	LD_LIBRARY_PATH=$(SYSTEMC_LIBDIR) $(CXX) $(LDFLAGS) -o $@ $(PYTHON_DISTROSIM_OBJS) $(VOBJ_DIR)/$(VERILATED_O) $(LDLIBS) 
+	
 clean:
 	$(RM) $(OBJS) $(OBJS:.o=.d) $(TARGETS)
-	$(RM) $(TARGET_VERSAL_CPM5_QDMA_DEMO) $(VERSAL_CPM5_QDMA_DEMO_OBJS)
-	$(RM) $(VERSAL_CPM5_QDMA_DEMO_OBJS:.o=.d)
-	$(RM) $(TARGET_VERSAL_CPM4_QDMA_DEMO) $(VERSAL_CPM4_QDMA_DEMO_OBJS)
-	$(RM) $(VERSAL_CPM4_QDMA_DEMO_OBJS:.o=.d)
 	$(RM) -r libpcie libpcie.a
+	$(RM) $(TARGET_PCIE_XDMA_DEMO) $(XDMA_COSIM_OBJS)
+	$(RM) $(TARGET_PYTHON_DISTROSIM) $(PYTHON_DISTROSIM_OBJS)
