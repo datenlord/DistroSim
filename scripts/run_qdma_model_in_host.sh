@@ -26,7 +26,7 @@ pushd $DEMO_PATH
 wget -q https://www.accellera.org/images/downloads/standards/systemc/systemc-2.3.3.tar.gz &&                                                                                                                                                     
 tar xzf systemc-2.3.3.tar.gz
 cd $SYSTEMC_PATH
-./configure --prefix=$SYSTEMC_PATH
+./configure --prefix=$SYSTEMC_PATH 'CXXFLAGS=-std=c++14 -g'
 make -j
 make install
 popd
